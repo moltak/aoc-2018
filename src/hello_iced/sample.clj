@@ -55,3 +55,5 @@
        (:flower1 colors)
        " and "
        (:flower2 colors)))
+
+(flower-colors {:flower1 "red"})

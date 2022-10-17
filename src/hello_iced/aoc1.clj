@@ -1,6 +1,6 @@
-(ns hello-iced.aoc-1 
+(ns hello-iced.aoc1
   (:require
-    [clojure.string :as str]))
+   [clojure.string :as str]))
 
 ; 문제 https://adventofcode.com/2018/day/1
 ; 번역 https://kippie408.tistory.com/55
@@ -24,29 +24,25 @@
     [operator operand]))
 
 (defn calc [operator value acc]
-  ((resolve (symbol operator)) acc (Integer/parseInt value)) 
-)
+  ((resolve (symbol operator)) acc (Integer/parseInt value)))
 
 (defn solve [data acc]
-  (let [[op value] (destruct data)] 
-    (calc op value acc)
-  )
-)
+  (let [[op value] (destruct data)]
+    (calc op value acc)))
 
 (defn main [opss]
-  (loop [[op & rest-ops :as ops] opss 
-         acc 0] 
+  (loop [[op & rest-ops :as ops] opss
+         acc 0]
     (if (empty? ops)
       acc
       ;(recur (rest ops) (solve (first ops) acc)
-      (recur rest-ops (+ op acc)
-             ))))
+      (recur rest-ops (+ op acc)))))
 
-(comment 
+(comment
   (split-operator-and-operand "+100")
   (Integer/parseInt "-100")
-  (parse-long "-1000") 
-  
+  (parse-long "-1000")
+
   ;(main ["+1" "+1" "+1"])
   ;(main ["+1" "+1" "-2"])
   ;(main ["-1" "-1" "-3"])
@@ -60,8 +56,7 @@
        (map parse-long)
        (reduce +))
 
-  (-> "1234"
+  (-> "1233"
       parse-long
-      (- 1000))
-)
+      (- 1000)))
 
