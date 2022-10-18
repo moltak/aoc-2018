@@ -15,7 +15,7 @@
 ;abcdee 2개의 e -> (두 번 나오는 문자 수: 1, 세 번 나오는 문자 수: 0)
 ;ababab 3개의 a, 3개의 b -> (두 번 나오는 문자 수: 0, 세 번 나오는 문자 수: 2)
 
-; 1. 부호화 -> a1b2c3, a2, b3,
+; 1. 부호화 -> abbcde -> a1b2c3, a2, b3,
 ; 2. 2 3 을 filter
 ;   2 -> 1, 1, 0 -> count -> 2
 ;   3 -> 1, 0, 1 -> count -> 2
@@ -26,6 +26,7 @@
 
 (def sample-array ["abcdef" "bababc" "abbcde" "abcccd" "aabcdd" "abcdee" "ababab"])
 
+(map frequencies sample-array)
 (defn encode-char-number
   "aabb를 {a 2 b 2}로 변환"
   [text]
@@ -39,23 +40,16 @@
 
 (defn some-target-number
   "map과 target-number를 받아서 target-number 유무 반환"
-  [mapped target-number]
+  [target-number mapped]
   (some #(= target-number %) (vals mapped)))
 
-(defn count-true 
-  "array에서 true의 수를 반환"
-  [array]
-  (->> array
-       (filter #(= % true))
-       count))
-
-
+(partial some-target-number 2)
 ; refactoring
 (defn solve [array]
-  (* (count-true (map (fn [encoded] (some-target-number encoded 2)) 
-       (map encode-char-number array)))
-     (count-true (map (fn [encoded] (some-target-number encoded 3)) 
-       (map encode-char-number array)))))
+  (* (count (filter true? (map (partial some-target-number 2) 
+                               (map encode-char-number array))))
+     (count (filter true? (map (partial some-target-number 3) 
+                               (map encode-char-number array))))))
 
 (defn solve2 [array]
   (->> array
@@ -73,6 +67,6 @@
   (str/split "aabb" #"")
   (apply list "aabb")
   (seq "aabb")
- 
+
 ;;
 )
