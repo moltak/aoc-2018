@@ -14,7 +14,8 @@
 
 
 ; 1. java object 사용
-; 2. loop, recur 사r
+; 2. loop, recur 사용
+; 3. reduced?
 
 (defn solve [array]
   (loop [res-set #{} sum 0 xs array]
@@ -24,19 +25,14 @@
       (recur
         (conj res-set sum)
         (+ sum (first xs))
-        (rest xs)
-      )
-    )
-  )
-)
+        (rest xs)))))
 
 (comment 
   (->> input-file 
        str/split-lines
        (map parse-long) 
        cycle
-       solve
-  )
+       solve)
   
   (solve (take 20 (cycle array))) ; 10
   (solve (take 20 (cycle [+1 -1]))) ; 10
@@ -47,4 +43,5 @@
   (conj #{1 2 3} 3)
   (#{1 2 3} 4)
   (contains? #{1 2 3} 3)
+  ;;
 )
