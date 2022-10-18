@@ -1,4 +1,4 @@
-(ns hello-iced.aoc1
+(ns hello-iced.aoc1-1
   (:require
    [clojure.string :as str]))
 

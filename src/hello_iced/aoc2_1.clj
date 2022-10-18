@@ -46,10 +46,16 @@
 (partial some-target-number 2)
 ; refactoring
 (defn solve [array]
-  (* (count (filter true? (map (partial some-target-number 2) 
-                               (map encode-char-number array))))
-     (count (filter true? (map (partial some-target-number 3) 
-                               (map encode-char-number array))))))
+  (* (->> array 
+          (map encode-char-number) 
+          (map (partial some-target-number 2))
+          (filter true?) 
+          count)
+     (->> array
+          (map encode-char-number)
+          (map (partial some-target-number 3))
+          (filter true?) 
+          count)))
 
 (defn solve2 [array]
   (->> array
