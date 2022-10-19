@@ -9,14 +9,10 @@
     (is (= nil (sut/get-pair "abc" "aba"))) ;
   ))
 
-(deftest print-pair-test
+(deftest duplication-test
   (testing "두 문자열을 받아 같은 부분만 반환"
-    (is (= "ab" (sut/print-pair "abc" "abb")))
-    (is (= "cc" (sut/print-pair "abcc" "AAcc")))
-    (is (= "fgij" (sut/print-pair "fghij" "fguij")))
+    (is (= "ab" (sut/duplication ["abc" "abb"])))
+    (is (= "cc" (sut/duplication ["abcc" "AAcc"])))
+    (is (= "fgij" (sut/duplication ["fghij" "fguij"])))
 ))
 
-(deftest solve-test
-  (testing "두 문자열을 받아 같은 부분만 반환"
-    (is (= "ab" (sut/solve "abc" "abb")))
-))

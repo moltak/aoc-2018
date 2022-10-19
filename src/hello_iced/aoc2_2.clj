@@ -13,49 +13,36 @@
 
 (def sample-array ["abcde" "fghij" "klmno" "pqrst" "fguij" "axcye" "wvxyz"])
 
-(defn get-pair
-  "두 문자열을 받아 한글자만 다른 경우 pair반환, 아니면 nil 반환"
-  [x y] 
-  (let [diff-map {:count 0}] 
-    (for [i (range (count x))
-        :let [a (get x i)
-              b (get y i)
-              diff (abs (compare a b))]
-        :while (< (diff-map :count) 2)] 
-      (update diff-map :count + diff)) 
-    (if (> (diff-map :count) 0)
-      [x y]
-      nil)))
+(defn duplication
+  "array의 1, 2번째 문자열에서 같은 부분만 반환"
+  [array]
+  (reduce 
+   (fn [acc i] (if (= (get i 0) (get i 1))
+                 (str acc (get i 0))
+                 acc))
+   ""
+   (map vector (get array 0) (get array 1))))
 
-(defn solve
-  "str1='abc' str2='abb' 일 때  
-   [[a a] [b b] [c b]로 변경 후 ab만 출력
-  "
-  [str1 str2]
-  (->> (map vector (seq str1) (seq str2))
-       (reduce (fn [acc i] (if (= (get i 0) (get i 1)) 
-                             (str acc (get i 0)) ;(println (get i 0)) 
-                             acc) ""))))
+(defn print-answer 
+  "정답(한글자만 다른경우) 일 때 정답 반환, 아니면 nil 반환"
+  [array]
+  (let [res (duplication array)] 
+    (if 
+     (= (dec (count (get array 1))) (count res)) res nil)))
 
-(defn print-pair 
-  "두 문자열에서 같은 부분만 반환"
-  [x y]
-  (str/join 
-    "" 
-    (for [i (range (count x))
-      :let [a (get x i)
-            b (get y i)]
-      :when (= (compare a b) 0)]
-    (get x i))))
 
+(defn solve 
+  "for 문을 이용해 모든 경우의 수를 탐색"
+  [array]
+  (filter some? (for [a1 array a2 array]
+    (print-answer [a1 a2]))))
 
 ;
 (comment
-  (println (seq "abc") (seq "bbb"))
-  (get "abc" 1)
-  (print-pair "abc" "abb")
-  (print-pair "fghij" "fguij")
+  (solve sample-array)
+  (solve input)
 
-  (str "a" "b")
+  ; reduce로 어떻게 바꿀 수 있을까?
+  (reduce (fn [acc i] (println i)) [] [["a" "b" "c"] ["a" "b" "c"]])
 )
 
