@@ -22,7 +22,7 @@
 ; 3. 곱한다.
 ;   2 * 2 -> 4
 
-(def input (slurp "resources/aoc2-1.input"))
+(def input (slurp "resources/aoc2_1.input"))
 
 (def sample-array ["abcdef" "bababc" "abbcde" "abcccd" "aabcdd" "abcdee" "ababab"])
 

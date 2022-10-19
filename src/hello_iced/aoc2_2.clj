@@ -9,7 +9,7 @@
 ; 1. 두 문자열을 받아 한글자만 다른 경우 정보 반환 pair 반환, 아니면 nil 반환 
 ; 2. 두 문자열 출력. 다른 문자는 출력하지 않음.
 
-(def input (str/split-lines (slurp "resources/aoc2-2.input")))
+(def input (str/split-lines (slurp "resources/aoc2_2.input")))
 
 (def sample-array ["abcde" "fghij" "klmno" "pqrst" "fguij" "axcye" "wvxyz"])
 

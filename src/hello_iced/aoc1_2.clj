@@ -10,7 +10,7 @@
 
 (def array [3, 3, 4, -1, -4])
 
-(def input-file (slurp "resources/aoc1-2.input"))
+(def input-file (slurp "resources/aoc1_2.input"))
 
 
 ; 1. java object 사용

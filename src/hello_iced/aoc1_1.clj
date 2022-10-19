@@ -5,7 +5,7 @@
 ; 문제 https://adventofcode.com/2018/day/1
 ; 번역 https://kippie408.tistory.com/55
 
-(def input (slurp "resources/aoc1.input"))
+(def input (slurp "resources/aoc1_1.input"))
 ; input
 
 ; example
@@ -26,9 +26,9 @@
 (defn calc [operator value acc]
   ((resolve (symbol operator)) acc (Integer/parseInt value)))
 
-(defn solve [data acc]
-  (let [[op value] (destruct data)]
-    (calc op value acc)))
+;(defn solve [data acc]
+;  (let [[op value] (destruct data)]
+;    (calc op value acc)))
 
 (defn main [opss]
   (loop [[op & rest-ops :as ops] opss
