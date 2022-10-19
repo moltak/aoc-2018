@@ -28,7 +28,7 @@
 
 (map frequencies sample-array)
 (defn encode-char-number
-  "aabb를 {a 2 b 2}로 변환"
+  "aabb를 {a 2 b 2}로 변환 -> 이것과 똑같은 기능을 하는게 frequencies 함수임"
   [text]
   (->> text
        seq
@@ -39,34 +39,31 @@
                {})))
 
 (defn some-target-number
-  "map과 target-number를 받아서 target-number 유무 반환"
+  "map과 target-number를 받아서 target-number 유무 반환 -> (inline 펑션으로 변경)"
   [target-number mapped]
   (some #(= target-number %) (vals mapped)))
 
 (partial some-target-number 2)
 ; refactoring
+
 (defn solve [array]
   (* (->> array 
-          (map encode-char-number) 
-          (map (partial some-target-number 2))
+          #_(map encode-char-number) 
+          (map frequencies) 
+          (map (fn [mapped] (some #(= 2 %) (vals mapped))))
           (filter true?) 
           count)
      (->> array
-          (map encode-char-number)
-          (map (partial some-target-number 3))
+          #_(map encode-char-number)
+          (map frequencies) 
+          (map (fn [mapped] (some #(= 3 %) (vals mapped))))
           (filter true?) 
           count)))
 
-(defn solve2 [array]
-  (->> array
-       (map encode-char-number)))
-;
-;
 (comment
   (println input)
   (encode-char-number "aabb")
   (some-target-number {\a 2} 2)
-  (solve2 sample-array)
   (solve (str/split-lines input))
   (reduce (fn [a v] (if (< a 100) (+ a v) (reduced 1000))) (range 20))
 
