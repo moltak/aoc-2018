@@ -21,7 +21,10 @@
                  (str acc (get i 0))
                  acc))
    ""
-   (map vector (get array 0) (get array 1))))
+   ;(map vector (get array 0) (get array 1))
+   (map vector (first array) (second array))
+   
+   ))
 
 (defn print-answer 
   "정답(한글자만 다른경우) 일 때 정답 반환, 아니면 nil 반환"
@@ -34,10 +37,21 @@
 (defn solve 
   "for 문을 이용해 모든 경우의 수를 탐색"
   [array]
-  (filter some? (for [a1 array a2 array]
-    (print-answer [a1 a2]))))
+  (->> 
+    (for [a1 array a2 array] 
+      (print-answer [a1 a2])))
+    (filter some?))
 
+(defn solve 
+  "for 문을 이용해 모든 경우의 수를 탐색"
+  [array]
+  (->> 
+    (for [a1 array a2 array] [a1 a2])
+    (map print-answer)
+    (map #((println %) %))
+    (filter some?)))
 ;
+
 (comment
   (solve sample-array)
   (solve input)
