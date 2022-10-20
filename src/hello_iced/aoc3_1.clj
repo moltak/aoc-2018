@@ -1,45 +1,80 @@
 (ns hello-iced.aoc3-1
   (:require [clojure.string :as str]))
+(use 'clojure.set)
 
-(def input (slurp "resources/aoc3_1.input"))
+(comment "
+Day 3
 
-(defn decode-claim
-  "claim을 맵으로 변경 
-   input: #1 @ 1,3: 4x4"
-  [claim]
-  (str/split claim #""))
+https://adventofcode.com/2018/day/3
+파트 1
 
+다음과 같은 입력이 주어짐.
 
-(defn coordinate
-  "x y width height를 이용 2차원 좌표 반환"
-  [& {x :x y :y width :width height :height}]
-  (for [x (seq (range x (+ x width))) y (seq (range y (+ y height)))]
-    (seq [x y])))
+#1 @ 1,3: 4x4
+#2 @ 3,1: 4x4
+#3 @ 5,5: 2x2
 
-(defn count-same-area
-  "겹치는 구역 수 반환"
-  [area1 area2]
-  (count (filter some? (for [a area1 b area2]
-                  (if (= a b) a nil)))))
+# 뒤에 오는 숫자는 ID, @ 뒤에 오는 숫자 쌍 (a, b)는 시작 좌표, : 뒤에 오는 (c x d)는 격자를 나타냄.
+입력의 정보대로 격자 공간을 채우면 아래와 같이 됨.
 
-(defn solve
-  "{:id :x :y :width :hegith를 실행"
-  [vector-map]
-  (for [a vector-map b vector-map]
-    [a b]))
+........
+...2222.
+...2222.
+.11XX22.
+.11XX22.
+.111133.
+.111133.
+........
+
+여기서 XX는 ID 1, 2, 3의 영역이 두번 이상 겹치는 지역.
+겹치는 지역의 갯수를 출력하시오. (위의 예시에서는 4) 
+")
+
+(def input3-1 (slurp "resources/aoc3_1.input"))
+
+(defn to-location-code
+  "문제에서 정의한 형식의 코드 한 줄을 받아 위치정보로 변환해 리턴합니다."
+  [raw-code]
+  ;                        id      x     y      width height
+  (let [[_ id x y width height] (re-find #"#(\d+) @ (\d+),(\d+): (\d+)x(\d+)" raw-code)]
+    {
+     :id     (-> id read-string str)
+     :x      (-> x read-string str)
+     :y      (-> y read-string str)
+     :width  (-> width read-string str)
+     :height (-> height read-string str)}))
+
+(defn map-coordinate 
+  "claim으로 맵 좌표 :id 생성" 
+  [& {id :id x :x y :y width :width height :height :as input}]
+  (->> 
+   (let [xn (parse-long x) yn (parse-long y) widthn (parse-long width) heightn (parse-long height)] 
+     (for [x (seq (range xn (+ xn widthn))) 
+           y (seq (range yn (+ yn heightn)))]
+       ;[(str x y)]
+       ;[(select-keys input [:x :y])]
+       [{:x x :y y}]))
+   flatten
+   (map #(hash-map % #{id}))
+   (into {})))
+
+(defn join-coordinate
+  "겹치는 좌표의 set에 id 추가"
+  [coordinates]
+  (->> coordinates
+       (reduce (fn [acc x] 
+                 (merge-with into acc x)
+                 #_(update acc (first (keys x)) conj x)
+                 ) 
+               {})))
 
 (comment 
-  (solve [{:id "0" :x 1 :y 3 :width 4 :height 4}
-          {:id "1" :x 3 :y 1 :width 4 :height 4}
-          {:id "2" :x 5 :y 5 :width 2 :height 2}])
-
-  (solve [1 2])
-
-  (def ID1 (coordinate {:x 1 :y 3 :width 4 :height 4}))
-  (def ID2 (coordinate {:x 3 :y 1 :width 4 :height 4}))
-  (def ID3 (coordinate {:x 5 :y 5 :width 2 :height 2}))
-
-  (count-same-area ID1 ID2)
-  (count-same-area ID2 ID3)
-  (count-same-area ID1 ID3)
+  (->> input3-1
+       str/split-lines
+       (map to-location-code) 
+       (map map-coordinate)
+       join-coordinate
+       (filter (fn [[k v]] (> (count v) 1)))
+       count)
 )
+

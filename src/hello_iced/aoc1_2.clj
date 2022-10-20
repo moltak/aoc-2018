@@ -32,9 +32,10 @@
   [array]
   (->> array
        (reduce (fn [res-vector v] 
-                 (let [sum (+ v (last res-vector))] (if (contains? (set res-vector) sum)
-                                                      (reduced sum) 
-                                                      (conj res-vector sum)))
+                 (let [sum (+ v (last res-vector))] 
+                   (if (contains? (set res-vector) sum)
+                     (reduced sum) 
+                     (conj res-vector sum)))
                  ) 
                [0])))
 
