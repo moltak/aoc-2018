@@ -1,4 +1,4 @@
-(ns hello-iced.aoc3-1
+(ns hello-iced.aoc3-2
   (:require [clojure.string :as str]))
 (use 'clojure.set)
 
@@ -6,28 +6,11 @@
 Day 3
 
 https://adventofcode.com/2018/day/3
-파트 1
+파트 2
 
-다음과 같은 입력이 주어짐.
-
-#1 @ 1,3: 4x4
-#2 @ 3,1: 4x4
-#3 @ 5,5: 2x2
-
-# 뒤에 오는 숫자는 ID, @ 뒤에 오는 숫자 쌍 (a, b)는 시작 좌표, : 뒤에 오는 (c x d)는 격자를 나타냄.
-입력의 정보대로 격자 공간을 채우면 아래와 같이 됨.
-
-........
-...2222.
-...2222.
-.11XX22.
-.11XX22.
-.111133.
-.111133.
-........
-
-여기서 XX는 ID 1, 2, 3의 영역이 두번 이상 겹치는 지역.
-겹치는 지역의 갯수를 출력하시오. (위의 예시에서는 4) 
+입력대로 모든 격자를 채우고 나면, 정확히 한 ID에 해당하는 영역이 다른 어떤 영역과도 겹치지 않음
+위의 예시에서는 ID 3 이 ID 1, 2와 겹치지 않으므로 3을 출력.
+겹치지 않는 영역을 가진 ID를 출력하시오. (문제에서 답이 하나만 나옴을 보장함)
 ")
 
 (def input3-2 (slurp "resources/aoc3_2.input"))
@@ -51,8 +34,6 @@ https://adventofcode.com/2018/day/3
    (let [xn (parse-long x) yn (parse-long y) widthn (parse-long width) heightn (parse-long height)] 
      (for [x (seq (range xn (+ xn widthn))) 
            y (seq (range yn (+ yn heightn)))]
-       ;[(str x y)]
-       ;[(select-keys input [:x :y])]
        [{:x x :y y}]))
    flatten
    (map #(hash-map % #{id}))
@@ -69,24 +50,35 @@ https://adventofcode.com/2018/day/3
                {})))
 
 (comment 
-  #_(->> input3-2
-       str/split-lines
-       (map to-location-code) 
-       (map map-coordinate)
-       join-coordinate
-       (filter (fn [[k v]] (= (count v) 1)))
-       #_(map (fn [[k v]] v))
-       #_distinct
-       #_(map seq)
-       #_flatten
-       #_(reduce (fn [acc x] (if (acc x) (update acc x inc) (conj acc {x 1}))) {})
-       #_(filter (fn [[k v]] (= v 1)))
-       )
+  (def 전체-id 
+    (->> input3-2
+         str/split-lines
+         (map to-location-code)
+         (map (fn [x] (select-keys x [:id])))
+         (map vals)
+         (map first)
+         set))
 
-  (->> input3-2
-       str/split-lines
-       (map to-location-code)
-       (for [a % b %] [a b]))
+  (def 겹치는좌표-id
+    (->> input3-2
+         str/split-lines
+         (map to-location-code)
+         (map map-coordinate) ; id의 2차원 맵을 생성
+         join-coordinate ; 2차원 맵을 좌표로 group-by
+         ; 좌표에 아이디가 여러개 있음. 그 아이디를 맵에서 전부 삭제함
+         (filter (fn [[k v]] (> (count v) 1)))
+         vals
+         (apply union)))
+ 
+  (difference 전체-id 겹치는좌표-id) ; 297
 
-)
+  (def cor1 [[{:x 0 :y 0 } #{"A"}]])
 
+  (let [[x y] ["A" "B"]] (str x " " y))
+
+  (apply union [#{1 2} #{2 3}]) ; 이렇게 나오게 하고 싶다. [1 2 3]
+
+  (difference #{1 2 3} #{3 4 5})
+
+  (seq #{1 2 3})
+  )
