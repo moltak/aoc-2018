@@ -64,12 +64,14 @@
   [raw-code]
   (let [[date] (re-find #"(\[[^\[\]]+\])" raw-code)
         [guard] (re-find #"(\#\d+)" raw-code)
+        [shift] (re-find #"(begins shift)" raw-code)
         [asleep] (re-find #"(falls asleep)" raw-code)
         [wake-up] (re-find #"(wakes up)" raw-code)
         ]
     {
      :date (str/replace date #"\[|\]" "")
      :guard guard
+     :shift shift
      :asleep asleep
      :wake_up wake-up
      }))
@@ -82,7 +84,7 @@
        (sort (fn [a b] (compare (a :date) (b :date))))))
 
 (defn for-guard-schedule
-  "가드의 시간표로 묶어서 표현합니다.
+  "가드의 시간표로 묶어서 출력함
   [1518-11-01 00:00] Guard #10 begins shift
   [1518-11-01 00:05] falls asleep
   [1518-11-01 00:25] wakes up
@@ -101,13 +103,59 @@
                [])))
 
 (comment 
-  (->> test-input 
+  (->> input4-1
        (map to-timeschedule)
        for-guard-schedule
        (group-by :guard)))
 
+(defn 가드의-잠든-모든-분을-찾습니다
+  [schedules]
+  (->> schedules
+       (map (fn [x] (assoc x :minute (parse-long (subs (re-find #":\d\d" (x :date)) 1))))) ; date에서 minute만 찾아 feild를 long type으로 생성합니다.
+       (reduce (fn [acc x] 
+                 (if (x :wake_up)
+                   (conj acc 
+                         (assoc 
+                          {:guard (x :guard)} 
+                          :minutes (range ((last acc) :minute) (x :minute))))
+                   (conj acc x))) [])))
 
-(defn 가드가-자는-수
+(comment 
+  (->> test-input 
+       (map to-timeschedule)
+       for-guard-schedule
+       가드의-잠든-모든-분을-찾습니다))
+
+(defn 가장-오래-잔-가드
+  [schedules]
+  (->> schedules
+       (filter (fn [x] (x :minutes))) ; :minutes가 있는 map 만 반환
+       (map (fn [x] (assoc x :minutes-count (count (x :minutes))))) ; 그냥 보려고 추가
+       flatten
+       (group-by :guard)
+       (map (fn [x] 
+              (reduce (fn [acc y] 
+                        (if (acc :guard) 
+                          (println y)
+                          #_(update acc :minutes (conj (y :minutes)) )
+                          (merge acc y))) 
+                      {} 
+                      (first (second x)))))
+       ))
+
+(comment 
+  (->> test-input 
+       (map to-timeschedule)
+       for-guard-schedule
+       가드의-잠든-모든-분을-찾습니다
+       가장-오래-잔-가드)
+  
+  ({:a 1 :b 2} :b 1)
+  (.indexOf [1 2 3] 4)
+  )
+
+
+(defn 가드가-잠든-횟수-반환
   [by-guard-schedules]
   (->> by-guard-schedules
        (filter (fn [x] (x :asleep)))
@@ -118,4 +166,4 @@
        (map to-timeschedule)
        for-guard-schedule
        (group-by :guard)
-       (map (fn [x] (가드가-자는-수 (second x))))))
+       (map (fn [x] (가드가-잠든-횟수-반환 (second x))))))
