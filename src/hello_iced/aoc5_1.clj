@@ -16,6 +16,9 @@
 ;; 주어진 문자열에서 한 유닛 (대문자와 소문자)을 전부 없앤 후 반응시켰을 때, 가장 짧은 문자열의 길이를 리턴하시오.
 ;; 예를 들어 dabAcCaCBAcCcaDA 에서 a/A를 없애고 모두 반응시키면 dbCBcD가 되고 길이는 6인데 비해,
 ;; 같은 문자열에서 c/C를 없애고 모두 반응시키면 daDA가 남고 길이가 4이므로 4가 가장 짧은 길이가 됨.
+
+(def input5-1 (slurp "resources/aoc5_1.input"))
+
 (defn to-int [x] (int (.charAt x 0)))
 (defn 반응
   [x y]
@@ -45,4 +48,9 @@
                [])))
 
 (comment
-  (str/join "" (solve "dabAcCaCBAcCcaDA")))
+  (- (count (solve input5-1)) 1) ; 마지막 new line 빼야함.
+  ;dabCBAcaDA
+  (str/join "" (solve "dabAcCaCBAcCcaDA"))
+  )
+
+
