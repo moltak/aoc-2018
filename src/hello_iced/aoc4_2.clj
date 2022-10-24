@@ -1,5 +1,6 @@
 (ns hello-iced.aoc4-2
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [clojure.test :as test]))
 (use 'clojure.set)
 
 (comment "
@@ -10,7 +11,7 @@
 [1518-11-01 00:05] falls asleep
 [1518-11-01 00:25] wakes up
 [1518-11-01 00:30] falls asleep
-[1518-11-01 00:55] wakes up
+[1518-11-01 0
 [1518-11-01 23:58] Guard #99 begins shift
 [1518-11-02 00:40] falls asleep
 [1518-11-02 00:50] wakes up
@@ -37,8 +38,185 @@
 주어진 분(minute)에 가장 많이 잠들어 있던 가드의 ID과 그 분(minute)을 곱한 값을 구하라.")
 
 
+(def test-input ["[1518-11-01 00:00] Guard #10 begins shift"
+                 "[1518-11-01 00:55] wakes up"
+                 "[1518-11-01 23:58] Guard #99 begins shift"
+                 "[1518-11-02 00:40] falls asleep"
+                 "[1518-11-02 00:50] wakes up"
+                 "[1518-11-03 00:05] Guard #10 begins shift"
+                 "[1518-11-03 00:24] falls asleep"
+                 "[1518-11-03 00:29] wakes up"
+                 "[1518-11-04 00:02] Guard #99 begins shift"
+                 "[1518-11-04 00:36] falls asleep"
+                 "[1518-11-04 00:46] wakes up"
+                 "[1518-11-05 00:03] Guard #99 begins shift"
+                 "[1518-11-01 00:05] falls asleep"
+                 "[1518-11-01 00:25] wakes up"
+                 "[1518-11-01 00:30] falls asleep"
+                 "[1518-11-05 00:45] falls asleep"
+                 "[1518-11-05 00:55] wakes up"])
+
+
+(def input4-2 (str/split-lines (slurp "resources/aoc4_2.input")))
+
+(defn to-timeschedule
+  "문제에서 정의한 형식의 코드 한 줄을 받아 스케줄 표로 변환합니다."
+  [raw-code]
+  (let [[date] (re-find #"(\[[^\[\]]+\])" raw-code)
+        [guard] (re-find #"(\#\d+)" raw-code)
+        [shift] (re-find #"(begins shift)" raw-code)
+        [asleep] (re-find #"(falls asleep)" raw-code)
+        [wake-up] (re-find #"(wakes up)" raw-code)
+        ]
+    {
+     :date (str/replace date #"\[|\]" "")
+     :guard guard
+     :shift shift
+     :asleep asleep
+     :wake_up wake-up
+     }))
+
+
 (comment
-  
-  
-  
-  )
+  (to-timeschedule (first test-input))
+  (->> test-input
+       (map to-timeschedule)
+       (sort (fn [a b] (compare (a :date) (b :date))))))
+
+(defn for-guard-schedule
+  "가드의 시간표로 묶어서 출력함
+  [1518-11-01 00:00] Guard #10 begins shift
+  [1518-11-01 00:05] falls asleep
+  [1518-11-01 00:25] wakes up
+  [1518-11-01 00:30] falls asleep
+  [1518-11-01 00:55] wakes up
+
+  -> guard: #10, { :'1518-11-01 00:05' asleep  :'time' wakes up  :'time' falls asleep  :'time' wakes up
+  "
+  [schedules]
+  (->> schedules
+       (sort (fn [a b] (compare (a :date) (b :date))))
+       (reduce (fn [acc x] 
+                 (if (x :guard) 
+                   (conj acc x) 
+                   (conj acc (assoc x :guard ((last acc) :guard))))) 
+               [])))
+
+(comment 
+  (->> input4-2
+       (map to-timeschedule)
+       for-guard-schedule
+       (group-by :guard)))
+
+(defn 가드의-잠든-모든-분을-리스트로-변환
+  [schedules]
+  (->> schedules
+       (map (fn [x] (assoc x :minute (parse-long (subs (re-find #":\d\d" (x :date)) 1))))) ; date에서 minute만 찾아 feild를 long type으로 생성합니다.
+       (reduce (fn [acc x] 
+                 (if (x :wake_up)
+                   (conj acc 
+                         (assoc 
+                          {:guard (x :guard)} 
+                          :minutes (range ((last acc) :minute) (x :minute))))
+                   (conj acc x))) [])))
+
+(comment 
+  (->> test-input 
+       (map to-timeschedule)
+       for-guard-schedule
+       가드의-잠든-모든-분을-리스트로-변환))
+
+(defn 잠든-모든-분을-가드-리스트로-변환
+  [schedules]
+  (->> schedules
+       (filter (fn [x] (x :minutes))) ; :minutes가 있는 map 만 반환
+       (map (fn [x] (assoc x :minutes-count (count (x :minutes))))) ; 그냥 보려고 추가
+       ; 이렇게 만들고 싶다 -> {"#10" (5 6 7 30 31 24 25)}
+       ; 삽질의 흔적들
+       #_(group-by :guard)
+       #_(map (fn [x] (map (fn [y] (select-keys y [:minutes])) (second x))))
+       #_(map (fn [x] (select-keys x [:minutes])))
+       #_(apply (partial merge-with into))
+
+       #_(reduce (fn [acc x] (conj acc x)) [])
+       #_(map (fn [x] 
+                (reduce (fn [acc y] 
+                          (if (acc :guard) 
+                            (println y)
+                            #_(update acc :minutes (conj (y :minutes)) )
+                            (merge acc y))) 
+                        {} 
+                        (first (second x)))))
+       ; 각 나온다........
+       (reduce (fn [acc x] (let [target (acc (x :guard))] 
+                             (if target 
+                               (update acc (x :guard) (comp vec flatten conj) (x :minutes)) 
+                               (merge acc {(x :guard) (x :minutes)})))) {})
+       #_(map (fn [x] (assoc {} :guard (first x) :count (count (second x)))))
+       #_(sort-by :count #(compare %2 %1))
+       ))
+
+(comment 
+  (->> input4-2
+       (map to-timeschedule)
+       for-guard-schedule
+       가드의-잠든-모든-분을-리스트로-변환
+       잠든-모든-분을-가드-리스트로-변환))
+
+(defn 가장-많이-잔-가드-반환
+  [by-guard-schedules]
+  (->> by-guard-schedules
+       (map (fn [x] (assoc {} :guard (first x) :count (count (second x)))))
+       (sort-by :count #(compare %2 %1))
+       first
+       ; map에서 :guard(string)만 어떻게 반환하지?
+       ))
+
+(comment
+  (->> input4-2 
+       (map to-timeschedule)
+       for-guard-schedule
+       가드의-잠든-모든-분을-리스트로-변환
+       잠든-모든-분을-가드-리스트로-변환
+       가장-많이-잔-가드-반환))
+
+(defn 가장-많이-잠든-시간-반환
+  [by-guard-schedules]
+  (->> by-guard-schedules
+       (map (fn [x] (assoc {} 
+                           :guard (first x) 
+                           ;_:frequencies (frequencies (second x))
+                           :most-fre (last (sort-by second (frequencies (second x)))))))
+       (sort-by (juxt :most-fre))
+       ;; todo - :most-fre 안의 두번째 값으로 sort-by 해야함.. 
+       ))
+
+(comment
+  (->> input4-2
+       (map to-timeschedule)
+       for-guard-schedule
+       가드의-잠든-모든-분을-리스트로-변환
+       잠든-모든-분을-가드-리스트로-변환
+       가장-많이-잠든-시간-반환 ; #2879의 49분이 가장 많이 잠든 시간임 
+       ))
+
+(defn 주어진-시간에-가장-많이-잔-가드-반환
+  [given-minute by-guard-schedules]
+  (->> by-guard-schedules
+       (map (fn [x] (assoc x :given-minute-fre ((x :frequencies) given-minute))))
+       (map (fn [x] (select-keys x [:guard :given-minute-fre])))
+       (sort-by :given-minute-fre #(compare %2 %1))))
+
+(comment
+  ; 연습 연습
+  (let [[_ :as all] ({:A [[17 2] [27 3] [37 1]]} :A)] all) ; -> 1을 출력하자
+  ({:A [[17 2] [27 3] [37 1]]} :A) ; -> 1을 출력하자 
+  ((apply merge (map #(hash-map (first %) (second %)) [[17 2] [27 3] [37 1]])) 37)
+
+  (->> input4-2
+       (map to-timeschedule)
+       for-guard-schedule
+       가드의-잠든-모든-분을-리스트로-변환
+       잠든-모든-분을-가드-리스트로-변환
+       가장-많이-잠든-시간-반환 ; #1049의 37분이 가장 많이 잠든 시간임 
+       ((partial 주어진-시간에-가장-많이-잔-가드-반환 37))))
