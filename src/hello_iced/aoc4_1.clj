@@ -108,7 +108,7 @@
        for-guard-schedule
        (group-by :guard)))
 
-(defn 가드의-잠든-모든-분을-찾습니다
+(defn 가드의-잠든-모든-분을-리스트로-변환
   [schedules]
   (->> schedules
        (map (fn [x] (assoc x :minute (parse-long (subs (re-find #":\d\d" (x :date)) 1))))) ; date에서 minute만 찾아 feild를 long type으로 생성합니다.
@@ -124,46 +124,90 @@
   (->> test-input 
        (map to-timeschedule)
        for-guard-schedule
-       가드의-잠든-모든-분을-찾습니다))
+       가드의-잠든-모든-분을-리스트로-변환))
 
-(defn 가장-오래-잔-가드
+(defn 잠든-모든-분을-가드-리스트로-변환
   [schedules]
   (->> schedules
        (filter (fn [x] (x :minutes))) ; :minutes가 있는 map 만 반환
        (map (fn [x] (assoc x :minutes-count (count (x :minutes))))) ; 그냥 보려고 추가
-       flatten
-       (group-by :guard)
-       (map (fn [x] 
-              (reduce (fn [acc y] 
-                        (if (acc :guard) 
-                          (println y)
-                          #_(update acc :minutes (conj (y :minutes)) )
-                          (merge acc y))) 
-                      {} 
-                      (first (second x)))))
+       ; 이렇게 만들고 싶다 -> {"#10" (5 6 7 30 31 24 25)}
+       ; 삽질의 흔적들
+       #_(group-by :guard)
+       #_(map (fn [x] (map (fn [y] (select-keys y [:minutes])) (second x))))
+       #_(map (fn [x] (select-keys x [:minutes])))
+       #_(apply (partial merge-with into))
+
+       #_(reduce (fn [acc x] (conj acc x)) [])
+       #_(map (fn [x] 
+                (reduce (fn [acc y] 
+                          (if (acc :guard) 
+                            (println y)
+                            #_(update acc :minutes (conj (y :minutes)) )
+                            (merge acc y))) 
+                        {} 
+                        (first (second x)))))
+       ; 각 나온다........
+       (reduce (fn [acc x] (let [target (acc (x :guard))] 
+                             (if target 
+                               (update acc (x :guard) (comp vec flatten conj) (x :minutes)) 
+                               (merge acc {(x :guard) (x :minutes)})))) {})
+       #_(map (fn [x] (assoc {} :guard (first x) :count (count (second x)))))
+       #_(sort-by :count #(compare %2 %1))
        ))
 
 (comment 
   (->> test-input 
        (map to-timeschedule)
        for-guard-schedule
-       가드의-잠든-모든-분을-찾습니다
-       가장-오래-잔-가드)
-  
-  ({:a 1 :b 2} :b 1)
-  (.indexOf [1 2 3] 4)
-  )
+       가드의-잠든-모든-분을-리스트로-변환
+       잠든-모든-분을-가드-리스트로-변환))
 
-
-(defn 가드가-잠든-횟수-반환
+(defn 가장-많이-잔-가드-반환
   [by-guard-schedules]
   (->> by-guard-schedules
-       (filter (fn [x] (x :asleep)))
-       count))
+       (map (fn [x] (assoc {} :guard (first x) :count (count (second x)))))
+       (sort-by :count #(compare %2 %1))
+       first
+       ; map에서 :guard(string)만 어떻게 반환하지?
+       ))
 
-(comment 
+(comment
   (->> test-input 
        (map to-timeschedule)
        for-guard-schedule
-       (group-by :guard)
-       (map (fn [x] (가드가-잠든-횟수-반환 (second x))))))
+       가드의-잠든-모든-분을-리스트로-변환
+       잠든-모든-분을-가드-리스트로-변환
+       가장-많이-잔-가드-반환))
+
+(defn 가장-많이-잠든-시간-반환
+  [by-guard-schedules]
+  (->> by-guard-schedules
+       (map (fn [x] (assoc {} 
+                           :guard (first x) 
+                           ;:frequencies (frequencies (second x))
+                           :most-fre (last (sort-by second (frequencies (second x)))))))))
+
+(comment
+  (->> test-input 
+       (map to-timeschedule)
+       for-guard-schedule
+       가드의-잠든-모든-분을-리스트로-변환
+       잠든-모든-분을-가드-리스트로-변환
+       가장-많이-잠든-시간-반환)
+
+  (def 가장-많이-잔-가드 (->> input4-1
+       (map to-timeschedule)
+       for-guard-schedule
+       가드의-잠든-모든-분을-리스트로-변환
+       잠든-모든-분을-가드-리스트로-변환
+       가장-많이-잔-가드-반환))
+
+  (def 가장-많이-잠든-시간 (->> input4-1
+       (map to-timeschedule)
+       for-guard-schedule
+       가드의-잠든-모든-분을-리스트로-변환
+       잠든-모든-분을-가드-리스트로-변환
+       가장-많이-잠든-시간-반환))
+  )
+

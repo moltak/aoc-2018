@@ -1,6 +1,5 @@
 (ns hello-iced.aoc5-1
-  (:require [clojure.string :as str]
-            [clojure.test :as test]))
+  (:require [clojure.string :as str]))
 (use 'clojure.set)
 ;; 파트 1
 ;; 입력: dabAcCaCBAcCcaDA
@@ -46,5 +45,4 @@
                [])))
 
 (comment
-  (str/join "" (solve "dabAcCaCBAcCcaDA"))
-  )
+  (str/join "" (solve "dabAcCaCBAcCcaDA")))
