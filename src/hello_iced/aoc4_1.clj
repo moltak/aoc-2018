@@ -59,7 +59,7 @@
 
 (def input4-1 (str/split-lines (slurp "resources/aoc4_1.input")))
 
-(defn to-timeschedule
+(defn raw-code->timeschedule
   "문제에서 정의한 형식의 코드 한 줄을 받아 스케줄 표로 변환합니다."
   [raw-code]
   (let [[date] (re-find #"(\[[^\[\]]+\])" raw-code)
@@ -78,12 +78,12 @@
 
 
 (comment
-  (to-timeschedule (first test-input))
+  (raw-code->timeschedule (first test-input))
   (->> test-input
-       (map to-timeschedule)
+       (map raw-code->timeschedule)
        (sort (fn [a b] (compare (a :date) (b :date))))))
 
-(defn for-guard-schedule
+(defn schedules->by-guard-schedule
   "가드의 시간표로 묶어서 출력함
   [1518-11-01 00:00] Guard #10 begins shift
   [1518-11-01 00:05] falls asleep
@@ -104,11 +104,11 @@
 
 (comment 
   (->> input4-1
-       (map to-timeschedule)
-       for-guard-schedule
+       (map raw-code->timeschedule)
+       schedules->by-guard-schedule
        (group-by :guard)))
 
-(defn 가드의-잠든-모든-분을-리스트로-변환
+(defn 가드의-잠든-모든-분->list
   [schedules]
   (->> schedules
        (map (fn [x] (assoc x :minute (parse-long (subs (re-find #":\d\d" (x :date)) 1))))) ; date에서 minute만 찾아 feild를 long type으로 생성합니다.
@@ -122,9 +122,9 @@
 
 (comment 
   (->> test-input 
-       (map to-timeschedule)
-       for-guard-schedule
-       가드의-잠든-모든-분을-리스트로-변환))
+       (map raw-code->timeschedule)
+       schedules->by-guard-schedule
+       가드의-잠든-모든-분->list))
 
 (defn 잠든-모든-분을-가드-리스트로-변환
   [schedules]
@@ -158,9 +158,9 @@
 
 (comment 
   (->> test-input 
-       (map to-timeschedule)
-       for-guard-schedule
-       가드의-잠든-모든-분을-리스트로-변환
+       (map raw-code->timeschedule)
+       schedules->by-guard-schedule
+       가드의-잠든-모든-분->list
        잠든-모든-분을-가드-리스트로-변환))
 
 (defn 가장-많이-잔-가드-반환
@@ -174,9 +174,9 @@
 
 (comment
   (->> test-input 
-       (map to-timeschedule)
-       for-guard-schedule
-       가드의-잠든-모든-분을-리스트로-변환
+       (map raw-code->timeschedule)
+       schedules->by-guard-schedule
+       가드의-잠든-모든-분->list
        잠든-모든-분을-가드-리스트로-변환
        가장-많이-잔-가드-반환))
 
@@ -190,23 +190,23 @@
 
 (comment
   (->> test-input 
-       (map to-timeschedule)
-       for-guard-schedule
-       가드의-잠든-모든-분을-리스트로-변환
+       (map raw-code->timeschedule)
+       schedules->by-guard-schedule
+       가드의-잠든-모든-분->list
        잠든-모든-분을-가드-리스트로-변환
        가장-많이-잠든-시간-반환)
 
   (->> input4-1
-       (map to-timeschedule)
-       for-guard-schedule
-       가드의-잠든-모든-분을-리스트로-변환
+       (map raw-code->timeschedule)
+       schedules->by-guard-schedule
+       가드의-잠든-모든-분->list
        잠든-모든-분을-가드-리스트로-변환
        가장-많이-잔-가드-반환)
 
   (->> input4-1
-       (map to-timeschedule)
-       for-guard-schedule
-       가드의-잠든-모든-분을-리스트로-변환
+       (map raw-code->timeschedule)
+       schedules->by-guard-schedule
+       가드의-잠든-모든-분->list
        잠든-모든-분을-가드-리스트로-변환
        가장-많이-잠든-시간-반환)
   )
