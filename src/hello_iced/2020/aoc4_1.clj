@@ -77,9 +77,7 @@ iyr:2011 ecl:brn hgt:59in")
   [x]
   (->> x
        (dissoc x "cid")
-       keys
-       count
-       (= 7)))
+       ((comp (partial = 7) count keys))))
 
 (comment
   (->> test-input
