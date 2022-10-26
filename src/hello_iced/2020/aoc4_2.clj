@@ -1,5 +1,6 @@
 (ns hello-iced.2020.aoc4-2
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str] 
+            [clojure.spec.alpha :as s]))
 
 (comment 
   "파트 2
