@@ -62,7 +62,7 @@ iyr:2011 ecl:brn hgt:59in")
     (->> splitted
          (map #(str/split % #":"))
          (map #(hash-map (keyword (first %)) (second %)))
-         (apply conj {}))))
+         (apply merge))))
 
 (defn inch|cm->bool
   [x]
@@ -72,6 +72,21 @@ iyr:2011 ecl:brn hgt:59in")
       "cm" (<= 150 hgt-int 193)
       "in" (<= 59 hgt-int 76)
       false)))
+
+(s/def :passort/string string?)
+
+(s/def :passport/cid (constantly true))
+(s/def :passport/byr (s/and string? #(<= 1920 (parse-long %) 2002)))
+(s/def :passport/iyr (s/and string? #(<= 2010 (parse-long %) 2020)))
+(s/def :passport/eyr (s/and string? #(<= 2020 (parse-long %) 2030)))
+(s/def :passport/hgt (s/and string? #(inch|cm->bool %)))
+(s/def :passport/hcl (s/and string? #(re-find #"^#[0-9a-f]{6}$" %)))
+(s/def :passport/ecl (s/and string? #(#{"amb" "blu" "brn" "gry" "grn" "hzl" "oth" } %)))
+(s/def :passport/pid (s/and string? #(re-matches #"^\d{9}$" %)))
+(s/def :passport/person (s/keys :req-un 
+                                [:passport/byr :passport/iyr :passport/eyr 
+                                 :passport/hgt :passport/hcl :passport/ecl 
+                                 :passport/pid]))
 
 (defn solve
   [raw-string]
@@ -87,34 +102,22 @@ iyr:2011 ecl:brn hgt:59in")
          (filter #(re-find #"^#[0-9a-f]{6}$" (% :hcl)))
          (filter #(#{"amb" "blu" "brn" "gry" "grn" "hzl" "oth" } (% :ecl)))
          (filter #(re-find #"^\d{9}$" (% :pid)))
-         count
-         )))
+         count)))
 
 (defn solve2
+  "filter -> spec으로 변경"
   [raw-string]
   (let [passports (raw-string->개인여권-string raw-string)]
     (->> passports 
          (map #(개인여권-string->여권map %))
          (map #(s/valid? :passport/person %))
          (filter true?)
-         count
-         )))
+         count)))
 
-(s/def :passport/cid true)
-(s/def :passport/byr (s/and string? #(<= 1920 (parse-long %) 2002)))
-(s/def :passport/iyr (s/and string? #(<= 2010 (parse-long %) 2020)))
-(s/def :passport/eyr (s/and string? #(<= 2020 (parse-long %) 2030)))
-(s/def :passport/hgt (s/and string? #(inch|cm->bool %)))
-(s/def :passport/hcl (s/and string? #(re-find #"^#[0-9a-f]{6}$" %)))
-(s/def :passport/ecl (s/and string? #(#{"amb" "blu" "brn" "gry" "grn" "hzl" "oth" } %)))
-(s/def :passport/pid (s/and string? #(re-matches #"^\d{9}$" %)))
-(s/def :passport/person (s/keys :req-un 
-                                [:passport/byr :passport/iyr :passport/eyr 
-                                 :passport/hgt :passport/hcl :passport/ecl 
-                                 :passport/pid]))
 (comment
   (solve2 test-input)
   (solve2 valid-input)
   (solve2 invalid-input)
   (solve2 input4-2)
+
 )

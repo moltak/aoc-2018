@@ -1,0 +1,108 @@
+# clojure.core/constantly
+`(constantly x)`
+
+  Returns a function that takes any number of arguments and returns x.
+
+## 4 examples
+
+* Example 1
+```clojure
+user=> (def boring (constantly 10))
+#'user/boring
+
+user=> (boring 1 2 3)
+10
+
+user=> (boring)
+10
+
+user=> (boring "Is anybody home?")
+10
+```
+
+* Example 2
+```clojure
+;; A really goofy way to find the size of a collection
+user=> (reduce + (map (constantly 1) [:a :b :c]))
+3
+```
+
+* Example 3
+```clojure
+;; constantly returns a function which always returns the same value
+(map (constantly 9) [1 2 3])
+user=> (9 9 9)
+
+(map (constantly (rand-int 100)) [:a :b :c])
+user=> (43 43 43)
+```
+
+* Example 4
+```clojure
+;; 'Removed' example that was more about transducers than `constantly`.
+
+:O
+```
+
+## See also
+* clojure.core/repeatedly
+* clojure.core/identity
+
+## 8 notes
+
+* Note 1
+  any examples of when this would be useful? I think it is weird to want a function that always returns "x" regardless of the number of arguments passed to it - however since this exists in core I'm sure it is sensible, more a case of I've not enough experience to appreciate its value.
+
+* Note 2
+  I asked about use cases for this function in #clojure and got a good response from amalloy:
+
+Say you want to call a library function that asks you to pass it a function; it's going to call that function ten times with different arguments to decide how to populate a list it gives you.  But your program is really simple and you want the list to just be full of zeroes.  So you call:
+
+    (libfn (constantly 0))
+
+Hope that's useful!
+
+* Note 3
+  (constantly 1) is often useful when it comes to testing. You can think of it like you would a "stub".
+
+* Note 4
+  constantly is typically used as an argument to a higher order function when a constant value is needed.
+
+* Note 5
+  It is also quite useful in unit tests:
+
+<pre>
+(deftest foo
+  (testing "Clojure tweets only"
+    (with-redefs [twitter/get-tweets
+                  (constantly ["#clojure is awesome!" "Yay! #winning"])]
+      (is (= ["#clojure is awesome!"]
+             (only-clojure "@happyguy"))))))
+</pre>
+
+* Note 6
+  Basically, when you already know the result of a function that you would need
+to pass to a higher order function, you can simply wrap it in a constantly to
+avoid creating a variadic anonymous function.
+
+    (defn hof [f]
+      (do-something-with (f ...))
+
+    (def x "result")
+
+    (hof (constantly x))
+
+* Note 7
+  I've used this to create a `no-op`  function.
+
+```clojure
+(let [handler (if (some? value)
+                 #(do-something-with value)
+                 ; else no-op
+                 (constantly nil))]
+  ; call handler
+  (handler "foo" "bar"))
+```
+
+* Note 8
+  Just a shortcut to <pre>(fn [& args] x)</pre>
