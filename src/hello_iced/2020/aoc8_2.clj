@@ -1,14 +1,20 @@
-(ns hello-iced.2020.aoc8-1
+(ns hello-iced.2020.aoc8-2
   (:require [clojure.string :as str]))
 
 (comment
-  "Day 8
-  https://adventofcode.com/2020/day/8
-  파트 1
-  일련의 지시가 입력으로 주어진다.
-  acc는 전역 변수를 증가/감소 시키는 역할을 한다. acc +7은 accumulator를 7 증가 시킨다. accumulator는 0에서 시작한다.
-  jmp는 현재 위치에 기반하여 새로운 지시로 넘어간다. jmp +1은 바로 다음의 지시로 넘어가는 것이고, jmp +2는 바로 다음의 지시는 건너뛰고 그 다음의 지시를 실행하는 것이다.
-  nop 는 아무것도 하지 않는다. 아래는 예시이다. ")
+  "주어진 지시들 중, 정확히 하나의 지시가 잘못된 것을 알게 되었다. 정확히 하나의 jmp가 nop가 되어야하거나, nop가 jmp가 되면 프로그램은 종료된다.
+
+  nop +0  | 1
+  acc +1  | 2
+  jmp +4  | 3
+  acc +3  |
+  jmp -3  |
+  acc -99 |
+  acc +1  | 4
+  nop -4  | 5 ;; 여기!
+  acc +6  | 6
+
+  위의 예시에서, '여기!' 라고 표기된 곳이 jmp에서 nop로 바뀌면, 지시는 무한히 반복하지 않고 마지막에 6을 반환하며 종료된다. 프로그램이 종료되는 시점의 accumulator의 값을 반환하여라.")
 
 (comment
   "PC(Program Counter) IR(Instruction Register) AC(Accomulator) TR(Temporary Register) DR(Data Register) IH(Instruction History)
@@ -40,13 +46,17 @@ acc +1
 jmp -4
 acc +6"))
 
-(def input (str/split-lines (slurp "resources/2020/aoc8_1.input")))
+(def input (str/split-lines (slurp "resources/2020/aoc8_2.input")))
 
 (def REGISTER {:PC 0 :IR "" :AC 0 :TR 0 :DR 0 :inst-history [] :RAW ""})
 
 (defn print-interm
   [x]
   (println x) x)
+
+(defn string-in?
+  [s elm]
+  (not= nil (str/index-of s elm)))
 
 (defn in? 
   "true if coll contains elm"
@@ -95,28 +105,32 @@ acc +6"))
   [instructions]
   (loop [register (into {} REGISTER) 
          instruction (first instructions)]
-    (if (or (in-history? register instruction) 
-            (= (register :PC) (dec (count instructions))))
-      register
-      (let [reg-res (execute (명령어->레지스터-저장 register instruction))]
-        (recur reg-res (nth instructions (reg-res :PC)))))
-    ))
+    (cond 
+      (in-history? register instruction) {:result false}
+      (= (register :PC) (dec (count instructions))) {:register (dissoc register :inst-history) :result true}
+      :else (let [reg-res (execute (명령어->레지스터-저장 register instruction))]
+              (recur reg-res (nth instructions (reg-res :PC)))))))
+
+(defn nop->jmp|jmp->nop
+  [instruction]
+  (cond 
+    (string-in? instruction "nop") (str/replace instruction #"nop" "jmp")
+    (string-in? instruction "jmp") (str/replace instruction #"jmp" "nop")
+    :else instruction))
+
+(defn solve2
+  [instructions]
+  (for [i (range 0 (count instructions))
+        :let [res (->> i
+                       (nth instructions)
+                       (nop->jmp|jmp->nop)
+                       (assoc instructions i)
+                       (solve))]
+        :when (true? (res :result))]
+    res))
 
 (comment
-  (명령어->cmd+operand (first test-input))
-  (solve input)
-
-  (in? (conj ["nop +0 0"] "acc +1 1") "nop +0 0")
-  (in? ["nop +0 0" "acc +1 1"] "nop +0 0")
-
-  (def ACC_REG (명령어->레지스터-저장 REGISTER "acc +1"))
-  (def JMP_REG (명령어->레지스터-저장 REGISTER "jmp -4"))
-  (def NOP_REG (명령어->레지스터-저장 REGISTER "nop -4"))
-
-  (in-history? (into REGISTER {:inst-history ["acc +1 0"]}) "acc +1")
-
-  (println ACC_REG)
-  ((명령어->함수-map :acc) ACC_REG)
-  ((명령어->함수-map :default) JMP_REG)
-  ((명령어->함수-map :default) NOP_REG)
+  (solve2 test-input)
+  (solve2 input)
   )
+
