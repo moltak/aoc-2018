@@ -20,9 +20,9 @@ Step F must be finished before step E can begin.
 위와 같은 입력의 경우 아래 형태의 그래프가 만들어짐.
 
   -->A--->B--
- /    \      \
+ /    \\      \\
 C      -->D----->E
- \           /
+ \\           /
   ---->F-----
 
 순서는 아래와 같음.
@@ -34,8 +34,30 @@ C      -->D----->E
     F가 수행됨
     E가 수행됨 (E는 B, D, F 모두가 선행되어야 수행될 수 있음)
 
-결과: CABDFE"
+결과: CABDFE")
+
+(def input (str/split-lines (slurp "resources/aoc7_1.input")))
+
+(def test-input (str/split-lines "Step C must be finished before step A can begin.
+Step C must be finished before step F can begin.
+Step A must be finished before step B can begin.
+Step A must be finished before step D can begin.
+Step B must be finished before step E can begin.
+Step D must be finished before step E can begin.
+Step F must be finished before step E can begin."))
+
+(defn print-interm
+  [x]
+  (println x) x)
+
+(defn 노드추출
+  [text] 
+  (->> text
+       #_(print-interm)
+       (map #(let [matcher (re-matcher #"[A-Z] " %)] 
+               [(str/trim (re-find matcher)) (str/trim (re-find matcher))]))))
+
+(comment 
+  (노드추출 input)
+  (노드추출 test-input)
   )
-
-(def input (slurp "resources/aoc7_1.input"))
-

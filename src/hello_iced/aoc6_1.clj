@@ -1,10 +1,8 @@
 (ns hello-iced.aoc6-1
   (:require [clojure.string :as str]
             [clojure.set :as set]
-            [clojure.spec.alpha :as s]
-            [clojure.walk :refer [postwalk]]))
+            [clojure.spec.alpha :as s]))
 
-;1.
 (comment
   "https://adventofcode.com/2018/day/6
 파트 1
@@ -14,11 +12,12 @@
 
 (def input (slurp "resources/aoc6_1.input"))
 
-(s/def ::maps (s/coll-of (s/keys :req [::name ::coordinates])))
-(s/def ::name string?)
-(s/def ::coordinates vector?)
-
 (def test-input [[1 1] [1 6] [8 3] [3 4] [5 5] [8 9]])
+
+(defn in? 
+  "true if coll contains elm"
+  [coll elm]  
+  (some #(= elm %) coll))
 
 (defn print-interm
   [x]
@@ -26,74 +25,80 @@
 
 (defn 지도-사이즈
   [coords]
-  (let [xs (reduce (fn [acc x] (conj acc (first x))) [] coords)
-        ys (reduce (fn [acc x] (conj acc (second x))) [] coords)]
-    [(apply max xs) (apply max ys)]))
+  (let [xs (reduce #(conj %1 (first %2)) [] coords)
+        ys (reduce #(conj %1 (second %2)) [] coords)]
+    {:min {:x (apply min xs) :y (apply min ys)} 
+     :max {:x (apply max xs) :y (apply max ys)}}))
+
+(defn 지도-경계
+  [map-min-max] 
+  (let [x-range (range ((map-min-max :min) :x) (inc ((map-min-max :max) :x))) 
+        y-range (range ((map-min-max :min) :y) (inc ((map-min-max :max) :y)))]
+    {:x-range x-range :y-range y-range}))
+
+(defn 경계에-닿았다?
+  [x y map-range]
+  (or (= x (first (map-range :x-range))) 
+      (= x (last (map-range :x-range)))
+      (= y (first (map-range :y-range)))
+      (= y (last (map-range :y-range)))))
+
+(defn 맨하탄거리 [[x1 y1] [x2 y2]]
+  (+ (abs (- x1 x2)) (abs (- y1 y2))))
+
+(defn 입력->맨하탄거리
+  [coords 
+   {x-range :x-range y-range :y-range}]
+  (for [w x-range h y-range] 
+    (->> coords 
+         (map-indexed (fn [i [x y]] [(맨하탄거리 [x y] [w h]) i w h]))
+         sort)))
 
 
-(defn 맨하탄거리
-  [[ax ay] [bx by]]
-  (+ (abs (- ax bx)) (abs (- ay by))))
-
-(defn 좌표쌍+전체맵->맨하탄거리
-  [c-name [ax ay] [w h]]
-  (->> (for [x (range 0 w) y (range 0 h)] [x y])
-       (reduce (fn [acc [x y]]
-                 (assoc acc (str x y) (vector #{c-name} (맨하탄거리 [ax ay] [x y]))))
-               {})))
-
-(defn 좌표+
-  [[key1 val1] [key2 val2]]
-  (cond
-    (= val1 val2) [(set/union key1 key2) val1]
-    (< val1 val2) [key1      val1]
-    (> val1 val2) [key2      val2]))
-
-(defn 좌표계+
-  [coords]
-  {:pre [(s/valid? ::coordinates coords)]}
-  (->> coords
-       (reduce (fn [acc i] (into acc i)) [])
-       (reduce (fn [acc i]
-                 (let [keyy (first i) vall (second i)]
-                   (if (acc keyy)
-                     (conj acc [keyy (좌표+ vall (acc keyy))])
-                     (conj acc [keyy vall]))))
-               {})))
-
-(defn 외곽찾기
-  "좌표에 x=0 | y=0 | x=w | y=h 일 경우 해당 idx 모두 삭제"
-  [w h coords]
-  (->> coords
-       (filter (fn [i]
-                 (let [x (parse-long (str (first (key i))))
-                       y (parse-long (str (second (key i))))]
-                   (or (= x 0) (= x (inc w))
-                       (= y 0) (= y (inc h))))))))
+(defn 타일-수-세기
+  [map-range manhatans]
+  (->> manhatans
+       (reduce (fn [acc x] (let [pv1 (first (first x))
+                                 pv2 (first (second x)) 
+                                 pk1 (second (first x))
+                                 w (nth (first x) 2)
+                                 h (nth (first x) 3)]
+                             (if (not= pv1 pv2)
+                               (if (contains? acc pk1) 
+                                 (into acc {pk1 [(inc (first (acc pk1))) 
+                                                 (conj (second (acc pk1)) (경계에-닿았다? w h map-range))]})
+                                 (assoc acc pk1 [1 #{}] ))
+                               acc))) {})))
 
 (defn solve
-  [[w h] coords]
-  (->> coords
-       (map-indexed (fn [idx x] (좌표쌍+전체맵->맨하탄거리 (str idx) x [w h]))) ;좌표 이름을 idx로 사용
-       vec ; 모든 입력을 벡터로 변경
-       좌표계+ ; 좌표를 모두 더해서 {"xy" [#{1 2} 2]}로 변경. xy 좌표에 1 2번이 2맨하탄 거리에 있다는 의미
-       #_(외곽찾기 w h)
-       (map #(first (second %))) ; #{1 2} 만 가져옴
-       (filter #(= (count %) 1)) ; 거리가 겹치지 않은것만 가져옴
-       flatten
-       frequencies ; 겹치지 않은 가장 큰 수
-       sort))
+  [coords]
+  (let [map-size (지도-사이즈 coords)
+        map-range (지도-경계 map-size)
+        manhatan-map (입력->맨하탄거리 coords map-range)]
+    (->> manhatan-map
+         (타일-수-세기 map-range)
+         (map second)
+         (sort-by first >)
+         (filter #(= 1 (count (second %))))
+    )))
 
 (comment
-  (def test-input1 [[1 1]])
-  (지도-사이즈 test-input)
-  (solve (지도-사이즈 test-input) test-input)
+  (into {:pk1 [0 false]} {:pk1 [(inc 0) true]})
+  (def test-map-range (지도-경계 (지도-사이즈 test-input)))
+  (경계에-닿았다? 1 100 test-map-range)
+  (def abc (입력->맨하탄거리 test-input test-map-range))
 
-  (def A (좌표쌍+전체맵->맨하탄거리 "A" [1 1] [10 10]))
-  (def B (좌표쌍+전체맵->맨하탄거리 "B" [1 6] [10 10]))
+  (solve test-input)
+
+  (def inputted 
+    (->> (str/split-lines input)
+         (map (fn [x] (str/split x #", ")))
+         (map (fn [x] (vec [(parse-long (first x)) (parse-long (second x))])))))
 
   (->> (str/split-lines input)
        (map (fn [x] (str/split x #", ")))
        (map (fn [x] (vec [(parse-long (first x)) (parse-long (second x))])))
-       (solve #(지도-사이즈 %))))
+       solve)
+  )
+
 
