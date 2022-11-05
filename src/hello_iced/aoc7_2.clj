@@ -1,154 +1,123 @@
 (ns hello-iced.aoc7-2
   (:require [clojure.string :as str]
-            [clojure.set :as set]))
+            [clojure.set :as set]
+            [hello-iced.util :as util]
+            [hello-iced.aoc7-1 :as aoc7-1]))
 
 (comment
-"Part2
-파트 1에서는 일을 워커(worker)가 하나였지만, 파트 2는 5명. 즉, 동시에 5개의 일을 처리할 수 있게 됨.
-그리고 각각의 일 (A~Z)은 처리하는데 (60+1~60+26)의 시간이 걸림. B는 62초, D는 64초, etc.
+  "Part2
+  파트 1에서는 일을 워커(worker)가 하나였지만, 파트 2는 5명. 즉, 동시에 5개의 일을 처리할 수 있게 됨.
+  그리고 각각의 일 (A~Z)은 처리하는데 (60+1~60+26)의 시간이 걸림. B는 62초, D는 64초, etc.
 
-이 때, 주어진 모든 일을 처리하는데 걸리는 시간을 구하시오.
+  이 때, 주어진 모든 일을 처리하는데 걸리는 시간을 구하시오.
 
-예)
+  예)
 
-아래는 파트 1의 예시에서 워커가 2명이 된 케이스이다.
-Second   Worker 1   Worker 2   Done
-   0        C          .        
-   1        C          .        
-   2        C          .        
-   3        A          F       C
-   4        B          F       CA
-   5        B          F       CA
-   6        D          F       CAB
-   7        D          F       CAB
-   8        D          F       CAB
-   9        D          .       CABF
+  아래는 파트 1의 예시에서 워커가 2명이 된 케이스이다.
+  Second   Worker 1   Worker 2   Done
+  0        C          .        
+  1        C          .        
+  2        C          .        
+  3        A          F       C
+  4        B          F       CA
+  5        B          F       CA
+  6        D          F       CAB
+  7        D          F       CAB
+  8        D          F       CAB
+  9        D          .       CABF
   10        E          .       CABFD
   11        E          .       CABFD
   12        E          .       CABFD
   13        E          .       CABFD
   14        E          .       CABFD
   15        .          .       CABFDE
-15초가 걸리므로 답은 15")
+  15초가 걸리므로 답은 15")
 
-(def input (str/split-lines (slurp "resources/aoc7_1.input")))
+(def input (str/split-lines (slurp "resources/aoc7_2.input")))
 
-(def test-input (str/split-lines "Step C must be finished before step A can begin.
-Step C must be finished before step F can begin.
-Step A must be finished before step B can begin.
-Step A must be finished before step D can begin.
-Step B must be finished before step E can begin.
-Step D must be finished before step E can begin.
-Step F must be finished before step E can begin."))
+(def worker {:index 0
+             :work nil
+             :final-work nil
+             :remain 0
+             :status "IDLE"})
 
-(defn print-interm
-  [x]
-  (println x) x)
-
-(defn raw->works
-  [text] 
-  (->> text
-       #_(print-interm)
-       (map #(let [matcher (re-matcher #"[A-Z] " %)] 
-               [(str/trim (re-find matcher)) 
-                (str/trim (re-find matcher))]))))
-
-(defn char->int [x] (int (.charAt x 0)))
 (defn work-time
   [work]
-  (+ (- (char->int work) (char->int "A")) 60))
+  (+ (- (util/char->int work) (util/char->int "A")) 61))
 
+(defn resolve-work
+  [work works]
+  (aoc7-1/remove-work-from-child work (aoc7-1/remove-work-from-parent work works)))
 
-(defn intersection-works
-  "모든 업무를 set으로 변환. 중복제거하기 위해"
-  [works]
-  (->> works
-       (reduce (fn [acc [a b]] (conj acc a b)) #{})
-       vec
-       sort))
+(defn occupy-work [worker work] 
+  (assoc worker 
+         :remain (work-time work) 
+         :work work 
+         :status "WORKING"))
 
-(defn dependency-works
-  "1. 의존성 배열
-  [A [C]] [F [C]] [B [A]] [D [A]] [E [B D F]]"
-  [works]
-  (let [의존성-뒤집기 (map (fn [x] [(second x) #{(first x)}]) 
-                     works)
-        맵으로-변환 (map (fn [x] (into {} [x])) 
-                    의존성-뒤집기)  
-        맵-합성 (apply merge-with into {} 맵으로-변환)
-        ] (vec 맵-합성)))
+(defn dec-remain [worker] 
+  (if (= 0 (:remain worker)) 
+    (assoc worker 
+           :final-work (:work worker) 
+           :work nil 
+           :status "IDLE") 
+    (update worker :remain dec)))
 
-(defn generate-root-works
-  " 2. 루트 작업 찾기
-     답: C
-     의존성 배열 안에서 모든 작업(ABCDEF) 중 [0]에 없는 작업이 루트임"
-  [works]
-  (let [의존성을-갖는-works (set (map #(first %) (dependency-works works)))
-        중복제거된-모든-works (set (intersection-works works))]
-    (map (fn [x] (vec [x #{}])) (set/difference 중복제거된-모든-works 의존성을-갖는-works))))
+(defn next-work 
+  "다음일을 찾음. "
+  [workers remain-works]
+  (let [workers-work (map #(:work %) workers)
+        next-work (str (aoc7-1/next-work remain-works))
+        reamin-works (map #(first %) remain-works)]
+    (if (util/in? reamin-works next-work)
+      next-work
+      nil)))
 
-(defn remove-work-from-parent
-  " 3. C를 출력 후 모든 배열에서 C를 삭제한다. 
-    [A []] [F []] [B [A]] [D [A]] [E [B D F]] 로 변환"
-  [work dependency-works]
-  (map (fn [x] [(first x) (disj (second x) work)]) dependency-works))
+(defn idle-workers
+  [workers] 
+  (filter #(= "IDLE" (:status %)) workers))
 
-(defn remove-work-from-child
-  [work dependency-works]
-  (filter #(not= (first %) work) dependency-works))
+(defn do-dec-remain
+  [acc worker tick]
+  {:tick tick
+   :workers (assoc (:workers acc) (:index worker) (dec-remain worker))
+   :total-works (:total-works acc)
+   :remain-works (:remain-works acc)
+   :resolve-works (:resolve-works acc)})
 
-(defn next-work
-  "4. 2번째 배열이 비어있는 작업 중 알파벳 순으로 출력 답: A "
-  [dependency-works]
-  (loop [counts 0]
-    (let [filtered (filter (fn [x] (= counts (count (second x)))) dependency-works)]
-      (if (= 0 (count filtered))
-        (recur (inc counts))
-        (->> filtered
-             sort
-             first
-             first)))))
-
-(defn solve
+(defn solve-with-workers
   [input]
-  (let [works (concat (dependency-works (raw->works input))
-                      (generate-root-works (raw->works input)))]
-    (println "전체작업들: " works)
+  (let [total-works (concat (aoc7-1/dependency-works (aoc7-1/raw->works input))
+                            (aoc7-1/generate-root-works (aoc7-1/raw->works input)))
+        workers (vec (map #(assoc worker :index %) (range 0 1)))]
+    (->> (range 0 10000) 
+         (reduce (fn [acc tick] 
+                   (let [next-work (aoc7-1/next-work (:remain-works acc))
+                         worker (first (:workers acc))]
+                     (if (= 0 (count (:remain-works acc)))
+                       (reduced {:tick tick
+                                 :workers (:workers acc)
+                                 :total-works (:total-works acc)
+                                 :remain-works (:remain-works acc)
+                                 :resolve-works (:resolve-works acc)})
 
-    (loop [완료작업 (next-work works) 
-           완료된작업들 []
-           남은작업들 (remove-work-from-child 완료작업 works)
-           loop-count 0]
-      (println "남은작업들" 남은작업들)
-      (if (= 0 (count 남은작업들))
-        (str/join (concat 완료된작업들 완료작업))
-        (let [남은작업들-완료작업 (remove-work-from-parent 완료작업 남은작업들)
-              다음작업 (next-work 남은작업들-완료작업)
-              완료된작업들 (conj 완료된작업들 완료작업)
-              남은작업들 (remove-work-from-child 다음작업 남은작업들-완료작업) ]
-          (println "완료작업" 완료작업)
-          (println "완료된작업들" 완료된작업들)
-          (println "남은작업들-완료작업" 남은작업들-완료작업)
-          (println "다음작업:" 다음작업)
-          (println "남은작업들-완료작업-다음작업" 남은작업들)
-          (println "loop-count" loop-count)
-          (println " ")
-          (recur 다음작업 
-                 완료된작업들
-                 남은작업들 
-                 (inc loop-count)))))))
+                       (if (util/not-nil? next-work)
+                         (if (util/idle? worker) 
+                           {:tick tick
+                            :workers (assoc (:workers acc) (:index worker) (occupy-work worker next-work))
+                            :total-works (:total-works acc)
+                            :remain-works (resolve-work next-work (:remain-works acc)) ; WORKING->IDLE로 바뀐 시점에 호출되야함.
+                            :resolve-works (conj (:resolve-works acc) next-work)}
+                           (do-dec-remain acc worker tick))
+                         (do-dec-remain acc worker tick)))))
+                 ; reduce default value
+                 {:tick 0 
+                  :workers workers 
+                  :total-works total-works 
+                  :remain-works total-works
+                  :resolve-works []}))))
 
 (comment 
-  (intersection-works (raw->works input))
-  (dependency-works (raw->works input))
-  (generate-root-works (raw->works input))
-  (next-work
-   (concat (dependency-works (raw->works input))
-           (generate-root-works (raw->works input))))
-  (remove-work-from-child "C" 
-                          (concat 
-                           (generate-root-works (raw->works test-input))
-                           (dependency-works (raw->works test-input))))
-
-  (solve test-input)
-  (solve input))
+  (solve-with-workers aoc7-1/test-input)
+  (solve-with-workers input)
+  )
