@@ -41,6 +41,11 @@
              :remain 0
              :status "IDLE"})
 
+(defn work-in-worker?
+  "현재 작업중인 work가 있는지 확인"
+  [workers work]
+  (util/in? (map #(:work %) workers) work))
+
 (defn work-time
   [work]
   (+ (- (util/char->int work) (util/char->int "A")) 61))
@@ -63,27 +68,22 @@
            :status "IDLE") 
     (update worker :remain dec)))
 
-(defn next-work 
-  "다음일을 찾음. "
-  [workers remain-works]
-  (let [workers-work (map #(:work %) workers)
-        next-work (str (aoc7-1/next-work remain-works))
-        reamin-works (map #(first %) remain-works)]
-    (if (util/in? reamin-works next-work)
-      next-work
-      nil)))
-
 (defn idle-workers
   [workers] 
   (filter #(= "IDLE" (:status %)) workers))
 
 (defn do-dec-remain
-  [acc worker tick]
-  {:tick tick
-   :workers (assoc (:workers acc) (:index worker) (dec-remain worker))
-   :total-works (:total-works acc)
-   :remain-works (:remain-works acc)
-   :resolve-works (:resolve-works acc)})
+  [acc worker tick next-work]
+  (let [worker (dec-remain worker)]
+    {:tick tick
+     :workers (assoc (:workers acc) (:index worker) worker)
+     :total-works (:total-works acc)
+     :remain-works (if (nil? (:work worker)) 
+                     (resolve-work (:final-work worker) (:remain-works acc)) 
+                     (:remain-works acc))
+     :resolved-works (if (nil? (:work worker)) 
+                       (conj (:resolved-works acc) (:final-work worker))
+                       (:resolved-works acc))}))
 
 (defn solve-with-workers
   [input]
@@ -99,23 +99,23 @@
                                  :workers (:workers acc)
                                  :total-works (:total-works acc)
                                  :remain-works (:remain-works acc)
-                                 :resolve-works (:resolve-works acc)})
+                                 :resolved-works (:resolved-works acc)})
 
                        (if (util/not-nil? next-work)
                          (if (util/idle? worker) 
                            {:tick tick
                             :workers (assoc (:workers acc) (:index worker) (occupy-work worker next-work))
                             :total-works (:total-works acc)
-                            :remain-works (resolve-work next-work (:remain-works acc)) ; WORKING->IDLE로 바뀐 시점에 호출되야함.
-                            :resolve-works (conj (:resolve-works acc) next-work)}
-                           (do-dec-remain acc worker tick))
-                         (do-dec-remain acc worker tick)))))
+                            :remain-works (:remain-works acc) ; WORKING->IDLE로 바뀐 시점에 호출되야함.
+                            :resolved-works (:resolved-works acc)}
+                           (do-dec-remain acc worker tick next-work))
+                         (do-dec-remain acc worker tick next-work)))))
                  ; reduce default value
                  {:tick 0 
                   :workers workers 
                   :total-works total-works 
                   :remain-works total-works
-                  :resolve-works []}))))
+                  :resolved-works []}))))
 
 (comment 
   (solve-with-workers aoc7-1/test-input)
