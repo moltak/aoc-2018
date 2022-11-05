@@ -53,32 +53,11 @@ Step F must be finished before step E can begin."))
                [(str/trim (re-find matcher)) 
                 (str/trim (re-find matcher))]))))
 
-(comment
-  "1. 의존성 배열
-    [A [C]] [F [C]] [B [A]] [D [A]] [E [B D F]] 
-  
-   2. 루트 작업 찾기
-     답: C
-     의존성 배열 안에서 모든 작업(ABCDEF) 중 [0]에 없는 작업이 루트임
+(defn char->int [x] (int (.charAt x 0)))
+(defn work-time
+  [work]
+  (+ (- (char->int work) (char->int "A")) 60))
 
-   3. C를 출력 후 모든 배열에서 C를 삭제한다. 
-    [A []] [F []] [B [A]] [D [A]] [E [B D F]] 로 변환
-
-   4. 2번째 배열이 비어있는 작업 중 알파벳 순으로 출력 
-     답: A
-  
-   5. A를 출력 후 모든 배열에서 A를 삭제
-    [F []] [B []] [D []] [E [B D F]]
-
-   6. 2번째 배열이 비어있는 작업 중 알파벳 순으로 출력 
-     답: B
-
-   7. B를 출력 후 모든 배열에서 B를 삭제
-    [F []] [D []] [E [D F]]
-
-   8. 4-5를 반복
-  "
-  )
 
 (defn intersection-works
   "모든 업무를 set으로 변환. 중복제거하기 위해"
@@ -134,25 +113,30 @@ Step F must be finished before step E can begin."))
   [input]
   (let [works (concat (dependency-works (raw->works input))
                       (generate-root-works (raw->works input)))]
-    (println "works: " works)
+    (println "전체작업들: " works)
 
     (loop [완료작업 (next-work works) 
            완료된작업들 []
-           works (remove-work-from-child 완료작업 works)]
-      ;(println " ")
-      (println "출력-> " 완료작업)
-      (let [부모가-삭제된-작업들 (remove-work-from-parent 완료작업 works)
-            다음작업 (next-work 부모가-삭제된-작업들)]
-        ;(println "부모가-삭제된-작업들" 부모가-삭제된-작업들)
-        ;(println "다음작업:" 다음작업)
-        ;(println "works:" works)
-        (if (= 0 (count works))
-          (str 완료된작업들 완료작업)
+           남은작업들 (remove-work-from-child 완료작업 works)
+           loop-count 0]
+      (println "남은작업들" 남은작업들)
+      (if (= 0 (count 남은작업들))
+        (str/join (concat 완료된작업들 완료작업))
+        (let [남은작업들-완료작업 (remove-work-from-parent 완료작업 남은작업들)
+              다음작업 (next-work 남은작업들-완료작업)
+              완료된작업들 (conj 완료된작업들 완료작업)
+              남은작업들 (remove-work-from-child 다음작업 남은작업들-완료작업) ]
+          (println "완료작업" 완료작업)
+          (println "완료된작업들" 완료된작업들)
+          (println "남은작업들-완료작업" 남은작업들-완료작업)
+          (println "다음작업:" 다음작업)
+          (println "남은작업들-완료작업-다음작업" 남은작업들)
+          (println "loop-count" loop-count)
+          (println " ")
           (recur 다음작업 
-                 (conj 완료된작업들 완료작업) 
-                 (remove-work-from-child 다음작업 부모가-삭제된-작업들)))))))
-
-  ; TODO: 하하하
+                 완료된작업들
+                 남은작업들 
+                 (inc loop-count)))))))
 
 (comment 
   (intersection-works (raw->works input))

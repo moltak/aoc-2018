@@ -134,28 +134,34 @@ Step F must be finished before step E can begin."))
              sort
              first
              first)))))
-
 (defn solve
   [input]
   (let [works (concat (dependency-works (raw->works input))
                       (generate-root-works (raw->works input)))]
-    (println "works: " works)
+    (println "전체작업들: " works)
 
     (loop [완료작업 (next-work works) 
            완료된작업들 []
-           works (remove-work-from-child 완료작업 works)]
-      ;(println " ")
-      (println "출력-> " 완료작업)
-      (let [부모가-삭제된-작업들 (remove-work-from-parent 완료작업 works)
-            다음작업 (next-work 부모가-삭제된-작업들)]
-        ;(println "부모가-삭제된-작업들" 부모가-삭제된-작업들)
-        ;(println "다음작업:" 다음작업)
-        ;(println "works:" works)
-        (if (= 0 (count works))
-          (str 완료된작업들 완료작업)
+           남은작업들 (remove-work-from-child 완료작업 works)
+           loop-count 0]
+      (println "남은작업들" 남은작업들)
+      (if (= 0 (count 남은작업들))
+        (str/join (concat 완료된작업들 완료작업))
+        (let [남은작업들-완료작업 (remove-work-from-parent 완료작업 남은작업들)
+              다음작업 (next-work 남은작업들-완료작업)
+              완료된작업들 (conj 완료된작업들 완료작업)
+              남은작업들 (remove-work-from-child 다음작업 남은작업들-완료작업) ]
+          (println "완료작업" 완료작업)
+          (println "완료된작업들" 완료된작업들)
+          (println "남은작업들-완료작업" 남은작업들-완료작업)
+          (println "다음작업:" 다음작업)
+          (println "남은작업들-완료작업-다음작업" 남은작업들)
+          (println "loop-count" loop-count)
+          (println " ")
           (recur 다음작업 
-                 (conj 완료된작업들 완료작업) 
-                 (remove-work-from-child 다음작업 부모가-삭제된-작업들)))))))
+                 완료된작업들
+                 남은작업들 
+                 (inc loop-count)))))))
 
 (comment 
   (intersection-works (raw->works input))
