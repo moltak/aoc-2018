@@ -35,89 +35,109 @@
 
 (def input (str/split-lines (slurp "resources/aoc7_2.input")))
 
-(def worker {:index 0
+(def WORKER {:index 0
              :work nil
              :final-work nil
              :remain 0
              :status "IDLE"})
 
-(defn work-in-worker?
-  "현재 작업중인 work가 있는지 확인"
-  [workers work]
-  (util/in? (map #(:work %) workers) work))
-
-(defn work-time
+(defn work->int
+  "업무를 수로 변환. A->61, B->62"
   [work]
-  (+ (- (util/char->int work) (util/char->int "A")) 61))
+  (+ (- (util/char->int (str work)) (util/char->int "A")) 61))
 
-(defn resolve-work
-  [work works]
-  (aoc7-1/remove-work-from-child work (aoc7-1/remove-work-from-parent work works)))
+(defn remove-works-from-list
+  "업무를 업무 목록에서 삭제"
+  [want-to-delete-works remain-works]
+  (reduce (fn [acc work] (aoc7-1/remove-work-from-child 
+                          work 
+                          (aoc7-1/remove-work-from-parent work acc)))
+          remain-works
+          want-to-delete-works))
 
-(defn occupy-work [worker work] 
+(defn occupy-work 
+  "worker에게 일을 할당"
+  [worker work] 
   (assoc worker 
-         :remain (work-time work) 
+         :remain (work->int work) 
          :work work 
          :status "WORKING"))
 
-(defn dec-remain [worker] 
-  (if (= 0 (:remain worker)) 
+(defn idle-workers
+  [workers] 
+  (filter #(= "IDLE" (:status %)) workers))
+
+(defn assign-works
+  "next-work를 찾아서 idle-workers에게 할당"
+  [acc idle-workers]
+  (reduce (fn [acc worker] 
+            (let [uncompleted-works (set (map str (aoc7-1/next-works (:remain-works acc)))) ; 완료되지 않은 일
+                  processing-works (set (map str (:processing-works acc))) ; 현재 진행중인 일
+                  next-work (set/difference uncompleted-works processing-works)]
+              (if (> (count next-work) 0)
+                (let [first-next-work (str (first next-work))] 
+                  (assoc acc 
+                         :workers (assoc (vec (:workers acc)) 
+                                         (:index worker) 
+                                         (occupy-work worker first-next-work))
+                         :processing-works (vec (set (conj (:processing-works acc) (str first-next-work))))))
+
+                ; 다음 일이 없을 때, acc 그대로 반환
+                acc)))
+          ; reduce default value
+          acc
+          ; iterate workers
+          idle-workers))
+
+(defn working! 
+  "worker의 남은 시간을 감소시키고 0이 되었을 때, 상태를 idle로 변경함."
+  [worker] 
+  (if (= 1 (:remain worker)) 
     (assoc worker 
            :final-work (:work worker) 
            :work nil 
            :status "IDLE") 
     (update worker :remain dec)))
 
-(defn idle-workers
-  [workers] 
-  (filter #(= "IDLE" (:status %)) workers))
-
-(defn do-dec-remain
-  [acc worker tick next-work]
-  (let [worker (dec-remain worker)]
-    {:tick tick
-     :workers (assoc (:workers acc) (:index worker) worker)
-     :total-works (:total-works acc)
-     :remain-works (if (nil? (:work worker)) 
-                     (resolve-work (:final-work worker) (:remain-works acc)) 
-                     (:remain-works acc))
-     :resolved-works (if (nil? (:work worker)) 
-                       (conj (:resolved-works acc) (:final-work worker))
-                       (:resolved-works acc))}))
+(defn tick-tick!
+  [acc tick]
+  (let [workers (map #(working! %) (:workers acc)) ; 모든 워커 tick 증가
+        final-works (filter util/not-nil? (map #(:final-work %) workers))]
+    (assoc acc 
+           :tick tick
+           :workers workers 
+           :remain-works (remove-works-from-list final-works (:remain-works acc)) ; 완료된 일을 업무 목록에서 삭제
+           :resolved-works (vec (set (conj (set (:resolved-works acc)) (set final-works)))) ; 종료된 작업 추가
+           :processing-works (vec (apply disj (set (:processing-works acc)) (set final-works)))))) ;종료된 작업 processing-works 에서 삭제
 
 (defn solve-with-workers
   [input]
   (let [total-works (concat (aoc7-1/dependency-works (aoc7-1/raw->works input))
                             (aoc7-1/generate-root-works (aoc7-1/raw->works input)))
-        workers (vec (map #(assoc worker :index %) (range 0 1)))]
-    (->> (range 0 10000) 
+        workers (vec (map #(assoc WORKER :index %) (range 0 5)))]
+    (->> (range 0 10000) ; tick을 정해진 수가 아닌 무한으로 변경하기 (0 10000 삭제하면됨)
          (reduce (fn [acc tick] 
-                   (let [next-work (aoc7-1/next-work (:remain-works acc))
-                         worker (first (:workers acc))]
-                     (if (= 0 (count (:remain-works acc)))
-                       (reduced {:tick tick
-                                 :workers (:workers acc)
-                                 :total-works (:total-works acc)
-                                 :remain-works (:remain-works acc)
-                                 :resolved-works (:resolved-works acc)})
+                   (let [acc (assoc acc :tick tick)
+                         idle-workers (idle-workers (:workers acc))]
+                     ; 남은 일이 없을 때, 프로그램 종료
+                     (util/print-interm 
+                      (if (= 0 (+ (count (:processing-works acc)) (count (:remain-works acc))))
+                        (reduced acc)
 
-                       (if (util/not-nil? next-work)
-                         (if (util/idle? worker) 
-                           {:tick tick
-                            :workers (assoc (:workers acc) (:index worker) (occupy-work worker next-work))
-                            :total-works (:total-works acc)
-                            :remain-works (:remain-works acc) ; WORKING->IDLE로 바뀐 시점에 호출되야함.
-                            :resolved-works (:resolved-works acc)}
-                           (do-dec-remain acc worker tick next-work))
-                         (do-dec-remain acc worker tick next-work)))))
+                        ; 일 할당 후 workers의 tick 증가
+                        #_(let [ticked (tick-tick! acc tick)]
+                          (assign-works ticked idle-workers))
+                        (let [acc+assigned-works (assign-works acc idle-workers)] 
+                          (tick-tick! acc+assigned-works tick))
+                        ))))
                  ; reduce default value
                  {:tick 0 
                   :workers workers 
                   :total-works total-works 
                   :remain-works total-works
+                  :processing-works []
                   :resolved-works []}))))
 
 (comment 
   (solve-with-workers aoc7-1/test-input)
-  (solve-with-workers input)
-  )
+  (solve-with-workers input))

@@ -124,7 +124,7 @@ Step F must be finished before step E can begin."))
   (filter #(not= (first %) work) dependency-works))
 
 (defn next-work
-  "4. 2번째 배열이 비어있는 작업 중 알파벳 순으로 출력 답: A "
+  "4. 2번째 배열(부모)이 비어있는 작업 하나를 알파벳 순으로 출력"
   [dependency-works]
   (if (= 0 (count dependency-works)) 
     nil
@@ -136,6 +136,19 @@ Step F must be finished before step E can begin."))
                sort
                first
                first))))))
+
+(defn next-works
+  "4. 2번째 배열(부모)이 비어있는 작업 모두를 알파벳 순으로 출력"
+  [dependency-works]
+  (if (= 0 (count dependency-works)) 
+    nil
+    (loop [counts 0]
+      (let [filtered (filter (fn [x] (= counts (count (second x)))) dependency-works)]
+        (if (= 0 (count filtered))
+          (recur (inc counts))
+          (->> filtered
+               sort
+               (map first)))))))
 (defn solve
   [input]
   (let [works (concat (dependency-works (raw->works input))
